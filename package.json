@@ -1,0 +1,8 @@
+{
+    "name": "pouchdb-dac",
+    "version": "1.0.0",
+    "dependencies": {
+        "pouchdb-promise": "^6.4.3",
+        "pouchdb-wrappers": "^4.1.0"
+    }
+}
