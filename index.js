@@ -22,6 +22,10 @@ var orderedJSONStringify = function(o,filterkeys) {
 }
 exports.orderedJSONStringify = orderedJSONStringify;
 
+var isSuperSet = function(superset, subset) {
+  return subset.every(function(el) { return superset.indexOf(el) > -1; });
+};
+  
 //
 // signing_provider must provide:
 //   sign(owner_string, document_hash_string) --> signature_string
@@ -34,7 +38,14 @@ exports.installPlugin = function (db, signing_provider) {
   }
 
   db.addOwner = function(doc, owner) {
-    doc[ACU_OWNER] = owner;
+    if(doc[ACU_OWNER]) {
+      if(doc[ACU_OWNER].indexOf(owner) < 0) {
+        doc[ACU_OWNER] = doc[ACU_OWNER].slice(0);
+        doc[ACU_OWNER].push(owner);
+      } //otherwise there already
+    } else {
+      doc[ACU_OWNER] = [owner];
+    }
     return doc;
   };
   
@@ -65,20 +76,21 @@ exports.installPlugin = function (db, signing_provider) {
                 throw(e);
               }
             }).finally(() => {
-              if(orig_doc && orig_doc[ACU_OWNER] != new_doc[ACU_OWNER] && orig_doc[ACU_OWNER]) {
+              if(orig_doc && orig_doc[ACU_OWNER] && ! isSuperSet(new_doc[ACU_OWNER], orig_doc[ACU_OWNER])  ) {
                 //allow only grabbing an anonymous doc
                 console.log("POUCHDAC: Rejecting owner change",new_doc._id, orig_doc[ACU_OWNER], new_doc[ACU_OWNER]);
                 resolve(null);
               } else if(new_doc[ACU_OWNER]) { //verify signature
                 var doc_stringify = orderedJSONStringify(new_doc, function(k) {return k != '_rev' && k != ACU_SIGNATURE && k != '_rev_tree'});
                 var hash = signing_provider.hash(doc_stringify);
-                if(signing_provider.verify(hash,  new_doc[ACU_OWNER], new_doc[ACU_SIGNATURE])) {
+                var signed_by = signing_provider.verify(hash, new_doc[ACU_SIGNATURE]);
+                if(signed_by && ((orig_doc[ACU_OWNER] && orig_doc[ACU_OWNER].indexOf(signed_by) > -1) || (!orig_doc[ACU_OWNER] && new_doc[ACU_OWNER].indexOf(signed_by) > -1))) {
                   resolve(new_doc);
                 } else {
-                  console.log("POUCHDAC: Rejecting invalid doc",new_doc._id, new_doc[ACU_OWNER], new_doc[ACU_SIGNATURE]);
+                  console.log("POUCHDAC: Rejecting invalid doc", new_doc._id, signed_by, new_doc[ACU_OWNER], new_doc[ACU_SIGNATURE]);
                   resolve(null);
                 }
-              } else {
+              } else { //anonymous doc ok
                 resolve(new_doc);
               }
             });
