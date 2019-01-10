@@ -2,9 +2,13 @@
 
 var Promise = require('pouchdb-promise');
 var wrappers = require('pouchdb-wrappers');
+
 const ACU_OWNER = "acu_owner"
 const ACU_SIGNATURE = "acu_signature"
-
+const ENCRYPTED_CONTENT = "encrypted_content"
+const ENCRYPTED_ATTRS = "encrypted_attributes"
+const DONT_ENCRYPT = [ENCRYPTED_CONTENT,ACU_SIGNATURE,ACU_OWNER];
+                      
 //this version like JSON.stringify except keys are canonically ordered (lexically)
 var orderedJSONStringify = function(o,filterkeys) {
   if(Array.isArray(o)) {
@@ -25,14 +29,9 @@ exports.orderedJSONStringify = orderedJSONStringify;
 var isSuperSet = function(superset, subset) {
   return subset.every(function(el) { return superset.indexOf(el) > -1; });
 };
-  
-//
-// signing_provider must provide:
-//   sign(owner_string, document_hash_string) --> signature_string
-//   verify(owner_string, document_hash_string, signature_string)
-//   hash(document_string) --> document_hash_string
-//
-exports.installPlugin = function (db, signing_provider) {
+
+//See 'pouch-dac-nacl' for example of encryptionProvider
+exports.installPlugin = function (db, encryptionProvider) {
   if (db.type().startsWith('http')) {
     throw "POUCHDAC: use only for local db";
   }
@@ -51,11 +50,63 @@ exports.installPlugin = function (db, signing_provider) {
   
   db.signDoc = function(doc) {
     var doc_stringify = orderedJSONStringify(doc, function(k) {return k != '_rev' && k != ACU_SIGNATURE && k != '_rev_tree'});
-    var hash = signing_provider.hash(doc_stringify);
-    return signing_provider.sign(doc[ACU_OWNER], hash).then(sig => {
+    var hash = encryptionProvider.hash(doc_stringify);
+    return encryptionProvider.sign(doc[ACU_OWNER], hash).then(sig => {
       doc[ACU_SIGNATURE] = sig;
       return doc;
     });
+  };
+  
+  db.encryptDoc = function(doc, writer, readers, encrypted_attrs) {
+    var ret = {};
+    encrypted_attrs = encrypted_attrs || doc.encrypted_attrs;
+    if(encrypted_attrs) {
+      //remove encrypted attrs into another object
+      if (encrypted_attrs === '*') {
+        var new_doc = {};
+        Object.keys(doc).forEach(f => {
+          if(f.startsWith("_") || DONT_ENCRYPT.indexOf(f) > -1) {
+            new_doc[f] = doc[f];
+          } else {
+            ret[f] = doc[f];
+          }
+        })
+        doc = new_doc;
+      } else {
+        doc = Object.assign({},doc);        
+        for (var i = 0; i < encrypted_attrs.length; i++) {
+          ret[encrypted_attrs[i]] = doc[encrypted_attrs[i]];
+          delete doc[encrypted_attrs[i]];
+        }
+      }
+      doc[ENCRYPTED_CONTENT] = encryptionProvider.encrypt(ret, writer, readers);
+    }
+    return doc;
+  };
+  
+  db.decryptDoc = function(encrypted_doc) {
+    var encrypted = encrypted_doc[ENCRYPTED_CONTENT];
+    var ret = encrypted_doc;
+    if(encrypted) {
+      var doc = encryptionProvider.decrypt(encrypted);
+      if(doc) {
+        //merge with source doc
+        ret = Object.assign({[ENCRYPTED_ATTRS]: Object.keys(doc)}, doc, ret);
+        delete ret[ENCRYPTED_CONTENT];
+      }
+    };
+    //TODO should it return decrypt id? note also this just returns encrypted rather than failing
+    return ret;
+  };
+  
+  db.newCredential = function() {
+    return encryptionProvider.newCredential();
+  };
+  db.addCredential = function(c) {
+    return encryptionProvider.addCredential(c);
+  };
+  db.removeCredential = function(id) {
+    return encryptionProvider.removeCredential(id);
   };
   
   wrappers.installWrapperMethods(db, {
@@ -82,8 +133,8 @@ exports.installPlugin = function (db, signing_provider) {
                 resolve(null);
               } else if(new_doc[ACU_OWNER]) { //verify signature
                 var doc_stringify = orderedJSONStringify(new_doc, function(k) {return k != '_rev' && k != ACU_SIGNATURE && k != '_rev_tree'});
-                var hash = signing_provider.hash(doc_stringify);
-                var signed_by = signing_provider.verify(hash, new_doc[ACU_SIGNATURE]);
+                var hash = encryptionProvider.hash(doc_stringify);
+                var signed_by = encryptionProvider.verify(hash, new_doc[ACU_SIGNATURE]);
                 if(signed_by && ((orig_doc[ACU_OWNER] && orig_doc[ACU_OWNER].indexOf(signed_by) > -1) || (!orig_doc[ACU_OWNER] && new_doc[ACU_OWNER].indexOf(signed_by) > -1))) {
                   resolve(new_doc);
                 } else {
