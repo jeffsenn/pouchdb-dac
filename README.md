@@ -34,12 +34,16 @@ Use:
     //install DAC into db instance with NaCl encryption
     pouchDAC.installPlugin(db,pouchNaCl.encryptionProvider());
 
-    //create some credentials (in practice this would be elsewhere and
-    //they would be saved
+    //create some credentials
     var one_cred = db.newCredential(); 
     var other_cred = db.newCredential(); 
     db.addCredential(one_cred);
     db.addCredential(other_cred);
+
+    // (in practice this would be elsewhere and
+    //  they would be saved persistently)
+    save_my_secret_securely_and_persistently(one_cred);
+    give_my_public_key_to_someone(one_cred.id);
 
     db.get(uu).then(doc => { //get a document
       doc.foo = "hello" + doc.foo;  //make some change
