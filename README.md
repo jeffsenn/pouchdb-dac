@@ -20,6 +20,8 @@ Strategy
 Encryption and signing is provided by another module.  See
 'pouch-dac-nacl' for an example.
 
+     npm install pouchdb-dac pouchdb-dac-nacl --save
+     
 Use:
 
 ```javascript
