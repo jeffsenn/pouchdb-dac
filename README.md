@@ -47,6 +47,7 @@ Use:
       doc = db.encryptDoc(doc,one_cred.id, [one_cred.id, other_cred.id], '*');
       
       db.signDoc(doc).then(doc => {  //sign it before putting
-         db.put(doc) ...
+         db.put(doc) 
+         ...
 ```
 
