@@ -1,12 +1,14 @@
 # pouchdb-dac
 Distributed access control for PouchDB
 
-Strategy:
-    -- override 'put' in database so that only documents that are
-    "correctly signed" can be written.  "Correctly" implies that if an
-    existing document has an attribute ACU_OWNER (indicating
-    ownership), then any overwrites of that document require signing
-    by some owner listed in that attribute.
+Strategy
+
+    --write access is hanlded by restricting writes into the DB.
+      Override 'put' in database so that only documents that are
+      "correctly signed" can be written.  "Correctly" implies that if an
+      existing document has an attribute ACU_OWNER (indicating
+      ownership), then any overwrites of that document require signing
+      by some owner listed in that attribute.
 
     --read access is handled by encryption.  Sensitive attributes of
       the document are (optionally) symetrically encrypted, and a key is stored for each
