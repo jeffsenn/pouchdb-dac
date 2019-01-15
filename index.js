@@ -99,11 +99,11 @@ exports.installPlugin = function (db, encryptionProvider) {
     return ret;
   };
   
-  db.newCredential = function() {
-    return encryptionProvider.newCredential();
+  db.newCredential = function(p) {
+    return encryptionProvider.newCredential(p);
   };
-  db.addCredential = function(c) {
-    return encryptionProvider.addCredential(c);
+    db.addCredential = function(c,p) {
+	return encryptionProvider.addCredential(c,p);
   };
   db.removeCredential = function(id) {
     return encryptionProvider.removeCredential(id);
