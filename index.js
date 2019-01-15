@@ -1,6 +1,7 @@
 'use strict';
 
-var Promise = require('pouchdb-promise');
+//this is mysteriously broken sometimes
+//var Promise = require('pouchdb-promise');
 var wrappers = require('pouchdb-wrappers');
 
 const ACU_OWNER = "acu_owner"
