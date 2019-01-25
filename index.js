@@ -31,8 +31,16 @@ var isSuperSet = function(superset, subset) {
   return subset.every(function(el) { return superset.indexOf(el) > -1; });
 };
 
+var uuidv4 = function() {
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+    var r = Math.random() * 16 | 0, v = c == 'x' ? r : (r & 0x3 | 0x8);
+    return v.toString(16);
+  });
+}
+
 //See 'pouch-dac-nacl' for example of encryptionProvider
 exports.installPlugin = function (db, encryptionProvider) {
+
   if (db.type().startsWith('http')) {
     throw "POUCHDAC: use only for local db";
   }
@@ -50,6 +58,7 @@ exports.installPlugin = function (db, encryptionProvider) {
   };
   
   db.signDoc = function(doc) {
+    if(!doc._id) doc._id = uuidv4();
     var doc_stringify = orderedJSONStringify(doc, function(k) {return k != '_rev' && k != ACU_SIGNATURE && k != '_rev_tree'});
     var hash = encryptionProvider.hash(doc_stringify);
     return encryptionProvider.sign(doc[ACU_OWNER], hash).then(sig => {
@@ -115,7 +124,7 @@ exports.installPlugin = function (db, encryptionProvider) {
       for (var i = 0; i < args.docs.length; i++) {
         var new_doc = args.docs[i];
         //TODO: deal with doc._deleted
-        if(!(typeof new_doc._id === 'string' && (/^_local/).test(new_doc._id))) {
+        if(new_doc._id && !(typeof new_doc._id === 'string' && (/^_local/).test(new_doc._id))) {
           var orig_doc;
           args.docs[i] = new Promise((resolve, reject) => {
             var orig_doc;
@@ -147,7 +156,7 @@ exports.installPlugin = function (db, encryptionProvider) {
               }
             });
           });
-        }
+ 	}
       }
       return Promise.all(args.docs).then(function (docs) {
         args.docs = docs.filter(function(v,i,a) { return v;}); //filter null docs removed by verify
