@@ -58,10 +58,12 @@ exports.installPlugin = function (db, encryptionProvider) {
   };
   
   db.signDoc = function(doc) {
+    let owners = doc[ACU_OWNER];
+    if(!owners || !owners.length) return doc; //no signing if no owners
     if(!doc._id) doc._id = uuidv4();
     var doc_stringify = orderedJSONStringify(doc, function(k) {return k != '_rev' && k != ACU_SIGNATURE && k != '_rev_tree'});
     var hash = encryptionProvider.hash(doc_stringify);
-    return encryptionProvider.sign(doc[ACU_OWNER], hash).then(sig => {
+    return encryptionProvider.sign(owners, hash).then(sig => {
       doc[ACU_SIGNATURE] = sig;
       return doc;
     });
