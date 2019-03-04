@@ -73,24 +73,25 @@ exports.installPlugin = function (db, encryptionProvider) {
     var ret = {};
     encrypted_attrs = encrypted_attrs || doc.encrypted_attrs;
     if(encrypted_attrs) {
-      //remove encrypted attrs into another object
-      if (encrypted_attrs === '*') {
-        var new_doc = {};
-        Object.keys(doc).forEach(f => {
-          if(f.startsWith("_") || DONT_ENCRYPT.indexOf(f) > -1) {
-            new_doc[f] = doc[f];
+        var encrypted = [], non_encrypted = [];
+        if (Array.isArray(encrypted_attrs)) {
+	  if(encrypted_attrs[0] == '*') {
+            encrypted = Object.keys(doc);            
+            non_encrypted = encrypted_attrs.slice(1);
           } else {
-            ret[f] = doc[f];
+            encrypted = encrypted_attrs;
           }
-        })
-        doc = new_doc;
-      } else {
-        doc = Object.assign({},doc);        
-        for (var i = 0; i < encrypted_attrs.length; i++) {
-          ret[encrypted_attrs[i]] = doc[encrypted_attrs[i]];
-          delete doc[encrypted_attrs[i]];
+        } else if (encrypted_attrs === '*') {
+          encrypted = Object.keys(doc);
         }
-      }
+      //remove encrypted attrs into another object        
+      doc = Object.assign({},doc); //non-destruct copy
+      encrypted.forEach(f => {
+        if(!f.startsWith("_") && DONT_ENCRYPT.indexOf(f) < 0 && non_encrypted.indexOf(f) < 0) {
+          ret[f] = doc[f];
+          delete doc[f];
+        }
+      });
       doc[ENCRYPTED_CONTENT] = encryptionProvider.encrypt(ret, writer, readers);
     }
     return doc;
