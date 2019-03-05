@@ -8,8 +8,9 @@ const ACU_OWNER = "acu_owner"
 const ACU_SIGNATURE = "acu_signature"
 const ENCRYPTED_CONTENT = "encrypted_content"
 const ENCRYPTED_ATTRS = "encrypted_attributes"
+const ENCRYPTED_READERS = "encrypted_readers"
 const DONT_ENCRYPT = [ENCRYPTED_CONTENT,ACU_SIGNATURE,ACU_OWNER];
-                      
+
 //this version like JSON.stringify except keys are canonically ordered (lexically)
 var orderedJSONStringify = function(o,filterkeys) {
   if(Array.isArray(o)) {
@@ -71,7 +72,8 @@ exports.installPlugin = function (db, encryptionProvider) {
   
   db.encryptDoc = function(doc, writer, readers, encrypted_attrs) {
     var ret = {};
-    encrypted_attrs = encrypted_attrs || doc.encrypted_attrs;
+    encrypted_attrs = encrypted_attrs || doc[ENCRYPTED_ATTRS];
+    readers = readers || doc[ACU_OWNER] || doc[ENCRYPTED_READERS];
     if(encrypted_attrs) {
         var encrypted = [], non_encrypted = [];
         if (Array.isArray(encrypted_attrs)) {
