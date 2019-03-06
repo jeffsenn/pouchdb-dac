@@ -42,7 +42,7 @@ var uuidv4 = function() {
 //See 'pouch-dac-nacl' for example of encryptionProvider
 exports.installPlugin = function (db, encryptionProvider) {
 
-  if (db.type().startsWith('http')) {
+  if (db.adapter.startsWith('http')) {
     throw "POUCHDAC: use only for local db";
   }
 

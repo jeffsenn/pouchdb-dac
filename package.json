@@ -1,6 +1,6 @@
 {
     "name": "pouchdb-dac",
-    "version": "1.0.9",
+    "version": "1.0.10",
     "license": "MIT",
     "repository": "jeffsenn/pouchdb-dac",
     "main": "index.js",
