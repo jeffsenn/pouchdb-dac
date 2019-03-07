@@ -14,7 +14,7 @@ const DONT_ENCRYPT = [ENCRYPTED_CONTENT,ACU_SIGNATURE,ACU_OWNER];
 //this version like JSON.stringify except keys are canonically ordered (lexically)
 var orderedJSONStringify = function(o,filterkeys) {
   if(Array.isArray(o)) {
-    return "["+ o.map(orderedJSONStringify).join(',')+"]";
+    return "["+ o.map((a) => orderedJSONStringify(a)).join(',')+"]";
   } else if(typeof o === 'object') {
     var k = Object.entries(o);
     if(filterkeys) {
@@ -57,7 +57,7 @@ exports.installPlugin = function (db, encryptionProvider) {
     }
     return doc;
   };
-  
+
   db.signDoc = function(doc) {
     let owners = doc[ACU_OWNER];
     if(!owners || !owners.length) return doc; //no signing if no owners
@@ -69,7 +69,7 @@ exports.installPlugin = function (db, encryptionProvider) {
       return doc;
     });
   };
-  
+
   db.encryptDoc = function(doc, writer, readers, encrypted_attrs) {
     var ret = {};
     encrypted_attrs = encrypted_attrs || doc[ENCRYPTED_ATTRS];
@@ -78,7 +78,7 @@ exports.installPlugin = function (db, encryptionProvider) {
         var encrypted = [], non_encrypted = [];
         if (Array.isArray(encrypted_attrs)) {
 	  if(encrypted_attrs[0] == '*') {
-            encrypted = Object.keys(doc);            
+            encrypted = Object.keys(doc);
             non_encrypted = encrypted_attrs.slice(1);
           } else {
             encrypted = encrypted_attrs;
@@ -86,7 +86,7 @@ exports.installPlugin = function (db, encryptionProvider) {
         } else if (encrypted_attrs === '*') {
           encrypted = Object.keys(doc);
         }
-      //remove encrypted attrs into another object        
+      //remove encrypted attrs into another object
       doc = Object.assign({},doc); //non-destruct copy
       encrypted.forEach(f => {
         if(!f.startsWith("_") && DONT_ENCRYPT.indexOf(f) < 0 && non_encrypted.indexOf(f) < 0) {
@@ -98,7 +98,7 @@ exports.installPlugin = function (db, encryptionProvider) {
     }
     return doc;
   };
-  
+
   db.decryptDoc = function(encrypted_doc) {
     var encrypted = encrypted_doc[ENCRYPTED_CONTENT];
     var ret = encrypted_doc;
@@ -113,7 +113,7 @@ exports.installPlugin = function (db, encryptionProvider) {
     //TODO should it return decrypt id? note also this just returns encrypted rather than failing
     return ret;
   };
-  
+
   db.newCredential = function(p) {
     return encryptionProvider.newCredential(p);
   };
@@ -123,7 +123,7 @@ exports.installPlugin = function (db, encryptionProvider) {
   db.removeCredential = function(id) {
     return encryptionProvider.removeCredential(id);
   };
-  
+
   wrappers.installWrapperMethods(db, {
     bulkDocs : function (orig, args) {
       for (var i = 0; i < args.docs.length; i++) {
@@ -136,7 +136,7 @@ exports.installPlugin = function (db, encryptionProvider) {
             db.get(args.docs[i]._id).then(doc => {
               orig_doc = doc;
             }).catch(e => {
-              if(e.status && e.status == 404) {              
+              if(e.status && e.status == 404) {
                 orig_doc = null;
               } else {
                 throw(e);
@@ -170,7 +170,3 @@ exports.installPlugin = function (db, encryptionProvider) {
     }
   });
 }
-
-  
-
-
