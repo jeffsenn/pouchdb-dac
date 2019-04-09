@@ -150,7 +150,13 @@ exports.installPlugin = function (db, encryptionProvider) {
                 var doc_stringify = orderedJSONStringify(new_doc, function(k) {return k != '_rev' && k != ACU_SIGNATURE && k != '_rev_tree'});
                 var hash = encryptionProvider.hash(doc_stringify);
                 var signed_by = encryptionProvider.verify(hash, new_doc[ACU_SIGNATURE]);
-                if(signed_by && ((orig_doc[ACU_OWNER] && orig_doc[ACU_OWNER].indexOf(signed_by) > -1) || (!orig_doc[ACU_OWNER] && new_doc[ACU_OWNER].indexOf(signed_by) > -1))) {
+
+                if(signed_by && (
+                    (orig_doc &&
+                     orig_doc[ACU_OWNER] &&
+                     orig_doc[ACU_OWNER].indexOf(signed_by) > -1) ||
+                        ((!orig_doc || !orig_doc[ACU_OWNER]) &&
+                         new_doc[ACU_OWNER].indexOf(signed_by) > -1))) {
                   resolve(new_doc);
                 } else {
                   console.log("POUCHDAC: Rejecting invalid doc", new_doc._id, signed_by, new_doc[ACU_OWNER], new_doc[ACU_SIGNATURE]);
